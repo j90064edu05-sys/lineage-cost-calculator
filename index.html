@@ -39,11 +39,11 @@
                 <!-- 裝備類型選擇 -->
                 <div class="space-y-3">
                     <label class="block text-sm font-medium text-slate-300">裝備類型</label>
-                    <div class="flex bg-slate-900 rounded-lg p-1 border border-slate-700" id="type-selector">
-                        <button data-type="weapon" class="type-btn active flex-1 py-2 text-sm font-bold rounded-md transition-all bg-amber-500 text-slate-900 shadow-md">
+                    <div class="flex bg-slate-900 rounded-lg p-1 border border-slate-700 gap-1" id="type-selector">
+                        <button data-type="weapon" class="type-btn active flex-1 py-2 text-xs md:text-sm font-bold rounded-md transition-all bg-amber-500 text-slate-900 shadow-md">
                             🗡️ 武器
                         </button>
-                        <button data-type="armor" class="type-btn flex-1 py-2 text-sm font-bold rounded-md transition-all text-slate-400 hover:text-white">
+                        <button data-type="armor" class="type-btn flex-1 py-2 text-xs md:text-sm font-bold rounded-md transition-all text-slate-400 hover:text-white">
                             🛡️ 防具
                         </button>
                     </div>
@@ -125,7 +125,7 @@
             btn.addEventListener('click', (e) => {
                 // 移除所有按鈕的 active 狀態
                 typeBtns.forEach(b => {
-                    b.classList.remove('active', 'bg-amber-500', 'bg-blue-500', 'text-slate-900', 'shadow-md');
+                    b.classList.remove('active', 'bg-amber-500', 'bg-blue-500', 'bg-emerald-500', 'text-slate-900', 'shadow-md');
                     b.classList.add('text-slate-400');
                 });
 
@@ -141,11 +141,11 @@
                     scrollLabel.textContent = '武卷 價格 (萬天幣)';
                     scrollPriceInput.value = '7.4';
                     safeLevelInput.value = '6';
-                } else {
+                } else if (currentItemType === 'armor') {
                     clickedBtn.classList.add('bg-blue-500');
                     scrollLabel.textContent = '防卷 價格 (萬天幣)';
                     scrollPriceInput.value = '3.6';
-                    safeLevelInput.value = '4';
+                    safeLevelInput.value = '4'; // 切換時預設為4，使用者可自行在下方輸入框修改
                 }
 
                 calculateCosts();
