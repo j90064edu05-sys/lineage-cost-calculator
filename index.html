@@ -267,16 +267,30 @@
                                                 </div>
                                                 
                                                 <div className="mt-4">
-                                                    <div className="flex items-end gap-1 mb-1">
-                                                        <span className={`text-4xl font-extrabold ${isMax ? `text-${borderColor}-400` : 'text-slate-200'}`}>
-                                                            {formatNumber(res.cost)}
-                                                        </span>
-                                                        <span className="text-slate-400 pb-1 font-medium">萬</span>
+                                                    <div className="flex flex-col gap-1 mb-1">
+                                                        <span className="text-sm text-slate-400 font-medium">期望自點總成本</span>
+                                                        <div className="flex items-end gap-1">
+                                                            <span className={`text-4xl font-extrabold ${isMax ? `text-${borderColor}-400` : 'text-slate-200'}`}>
+                                                                {formatNumber(res.cost)}
+                                                            </span>
+                                                            <span className="text-slate-400 pb-1 font-medium">萬</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* 合理收購價與建議區塊 */}
+                                                    <div className="mt-4 bg-slate-900/80 rounded-lg p-3 border border-slate-700/50 shadow-inner">
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <span className="text-sm font-bold text-emerald-400">🤝 合理收購參考價</span>
+                                                            <span className="text-lg font-bold text-emerald-400">{formatNumber(res.cost)} 萬</span>
+                                                        </div>
+                                                        <p className="text-xs text-slate-400 leading-relaxed">
+                                                            💡 <strong className="text-slate-300">購買建議：</strong>若市場價 <strong className="text-emerald-400">低於</strong> 此金額，代表賣家賠本賣，建議<strong className="text-white">直接收購成品</strong>最划算，不建議自己點！
+                                                        </p>
                                                     </div>
                                                     
-                                                    <div className="mt-3 pt-3 border-t border-slate-700/60">
+                                                    <div className="mt-4 pt-3 border-t border-slate-700/60">
                                                         <p className="text-xs text-slate-500 font-mono tracking-tight leading-relaxed">
-                                                            <span className="text-slate-400">算式：</span><br/> {res.formula}
+                                                            <span className="text-slate-400">期望值算式：</span><br/> {res.formula}
                                                         </p>
                                                     </div>
                                                 </div>
