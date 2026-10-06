@@ -1,273 +1,331 @@
-import React, { useState, useEffect } from 'react';
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天堂經典版 衝裝成本計算機</title>
+    
+    <!-- 引入 Tailwind CSS (負責網頁美化與排版) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 React 與 ReactDOM (負責介面互動與邏輯) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- 引入 Babel (讓瀏覽器能直接讀懂 React JSX 語法) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-export default function LineageCostCalculator() {
-  const [itemType, setItemType] = useState('weapon'); // 'weapon' or 'armor'
-  const [basePrice, setBasePrice] = useState(6); // in 萬 (Ten thousands)
-  const [scrollPrice, setScrollPrice] = useState(7.4); // in 萬
-  const [safeLevel, setSafeLevel] = useState(6);
-  const [armorFormula, setArmorFormula] = useState('current');
+    <style>
+        /* 自訂一些簡單的漸層背景與滾動條樣式 */
+        body {
+            background-color: #0f172a; /* slate-900 */
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; 
+        }
+    </style>
+</head>
+<body>
+    <!-- React 應用程式掛載點 -->
+    <div id="root"></div>
 
-  const [results, setResults] = useState([]);
+    <script type="text/babel">
+        const { useState, useEffect } = React;
 
-  // Auto-switch default safety level when type changes to make it user-friendly
-  const handleTypeChange = (type) => {
-    setItemType(type);
-    if (type === 'weapon') {
-      setScrollPrice(7.4);
-      setSafeLevel(6);
-    } else {
-      setScrollPrice(3.6);
-      setSafeLevel(4);
-    }
-  };
+        function LineageCostCalculator() {
+            // 定義各項參數的狀態
+            const [itemType, setItemType] = useState('weapon'); // 'weapon' 或 'armor'
+            const [basePrice, setBasePrice] = useState(6); // 白裝價格 (萬)
+            const [scrollPrice, setScrollPrice] = useState(7.4); // 卷軸價格 (萬)
+            const [safeLevel, setSafeLevel] = useState(6); // 安定值
+            const [armorFormula, setArmorFormula] = useState('current'); // 防具機率公式 ('current' 或 'target')
 
-  // Core calculation logic triggered whenever inputs change
-  useEffect(() => {
-    const calculateCosts = () => {
-      let currentResults = [];
-      
-      // Calculate Safety Level Cost
-      const safeCost = basePrice + (scrollPrice * safeLevel);
-      currentResults.push({
-        level: `+${safeLevel} (安定值)`,
-        cost: safeCost,
-        formula: `${basePrice} + (${scrollPrice} × ${safeLevel}張卷軸)`,
-        desc: '100% 成功'
-      });
+            const [results, setResults] = useState([]);
 
-      let prevCost = safeCost;
+            // 當切換武器或防具時，自動帶入預設的卷軸價格與安定值
+            const handleTypeChange = (type) => {
+                setItemType(type);
+                if (type === 'weapon') {
+                    setScrollPrice(7.4); // 武卷預設
+                    setSafeLevel(6);     // 武器預設安定
+                } else {
+                    setScrollPrice(3.6); // 防卷預設
+                    setSafeLevel(4);     // 防具預設安定
+                }
+            };
 
-      // Calculate Over 1 to Over 3 Costs
-      for (let over = 1; over <= 3; over++) {
-        const targetLevel = safeLevel + over;
-        let attemptsNeeded;
-        let successRate;
+            // 核心計算邏輯，當任何參數改變時自動重新計算
+            useEffect(() => {
+                const calculateCosts = () => {
+                    let currentResults = [];
+                    
+                    // 1. 計算達到安定值的成本 (100% 成功)
+                    const safeCost = basePrice + (scrollPrice * safeLevel);
+                    currentResults.push({
+                        level: `+${safeLevel} (安定值)`,
+                        cost: safeCost,
+                        formula: `${basePrice} + (${scrollPrice} × ${safeLevel}張卷軸)`,
+                        desc: '100% 成功'
+                    });
 
-        if (itemType === 'weapon') {
-          attemptsNeeded = 3; // 33% success rate = 1/3
-          successRate = '33.3%';
-        } else {
-          const currentLevel = targetLevel - 1;
-          let denominator = 1;
-          
-          if (armorFormula === 'current') {
-            denominator = Math.max(1, currentLevel);
-          } else if (armorFormula === 'target') {
-            denominator = Math.max(1, targetLevel);
-          } else if (armorFormula === 'safe') {
-            denominator = Math.max(1, safeLevel);
-          }
-          
-          attemptsNeeded = denominator; 
-          successRate = `${((1 / attemptsNeeded) * 100).toFixed(1)}%`;
+                    let prevCost = safeCost;
+
+                    // 2. 計算過 1 到過 3 的期望成本
+                    for (let over = 1; over <= 3; over++) {
+                        const targetLevel = safeLevel + over;
+                        let attemptsNeeded; // 期望需要的次數 (分母)
+                        let successRate;    // 顯示用的機率文字
+
+                        if (itemType === 'weapon') {
+                            // 武器過安定，機率固定 33.3% (1/3)
+                            attemptsNeeded = 3; 
+                            successRate = '33.3%';
+                        } else {
+                            // 防具機率依據玩家選擇的公式
+                            const currentLevel = targetLevel - 1;
+                            let denominator = 1;
+                            
+                            if (armorFormula === 'current') {
+                                // 1 / 強化前數值 (例如 +4 衝 +5 為 1/4)
+                                denominator = Math.max(1, currentLevel);
+                            } else if (armorFormula === 'target') {
+                                // 1 / 強化後數值 (例如 +6 衝 +7 為 1/7)
+                                denominator = Math.max(1, targetLevel);
+                            }
+                            
+                            attemptsNeeded = denominator; 
+                            successRate = `${((1 / attemptsNeeded) * 100).toFixed(1)}%`;
+                        }
+
+                        // 單次期望總成本 = (前一階準備成本 + 1張過安定卷軸) × 期望次數
+                        const costForOneAttempt = prevCost + scrollPrice;
+                        const totalExpectedCost = costForOneAttempt * attemptsNeeded;
+
+                        currentResults.push({
+                            level: `+${targetLevel} (過${over})`,
+                            cost: totalExpectedCost,
+                            formula: `(${formatNumber(prevCost)} + ${scrollPrice}卷軸) × ${attemptsNeeded}次期望值`,
+                            desc: `成功率: ${successRate}`
+                        });
+
+                        // 將這次的總成本設為下一階的準備成本
+                        prevCost = totalExpectedCost; 
+                    }
+
+                    setResults(currentResults);
+                };
+
+                calculateCosts();
+            }, [itemType, basePrice, scrollPrice, safeLevel, armorFormula]);
+
+            // 數字格式化 (加入千分位與取小數點第一位)
+            const formatNumber = (num) => {
+                if (isNaN(num)) return '0';
+                return Number(num.toFixed(1)).toLocaleString('en-US');
+            };
+
+            return (
+                <div className="min-h-screen bg-slate-900 text-slate-200 p-4 md:p-8 font-sans">
+                    <div className="max-w-5xl mx-auto">
+                        
+                        {/* 網頁標題區 */}
+                        <header className="mb-8 text-center md:text-left">
+                            <h1 className="text-3xl md:text-4xl font-bold text-amber-400 drop-shadow-md">
+                                ⚔️ 天堂經典版 衝裝成本計算機
+                            </h1>
+                            <p className="text-slate-400 mt-2">
+                                根據期望值數學模型，即時計算武器與防具的衝裝成本。
+                            </p>
+                        </header>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                            
+                            {/* 左側：參數設定區 */}
+                            <div className="lg:col-span-4 space-y-6 bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700">
+                                <h2 className="text-xl font-semibold text-white border-b border-slate-700 pb-2">參數設定</h2>
+                                
+                                {/* 裝備類型選擇 */}
+                                <div className="space-y-3">
+                                    <label className="block text-sm font-medium text-slate-300">裝備類型</label>
+                                    <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
+                                        <button
+                                            onClick={() => handleTypeChange('weapon')}
+                                            className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
+                                                itemType === 'weapon' 
+                                                    ? 'bg-amber-500 text-slate-900 shadow-md' 
+                                                    : 'text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            🗡️ 武器
+                                        </button>
+                                        <button
+                                            onClick={() => handleTypeChange('armor')}
+                                            className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
+                                                itemType === 'armor' 
+                                                    ? 'bg-blue-500 text-white shadow-md' 
+                                                    : 'text-slate-400 hover:text-white'
+                                            }`}
+                                        >
+                                            🛡️️ 防具
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {}
+                                {/* 價格與安定值輸入框 */}
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-1">
+                                            +0 白裝成本 (萬天幣)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.1"
+                                            value={basePrice}
+                                            onChange={(e) => setBasePrice(parseFloat(e.target.value) || 0)}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-1">
+                                            {itemType === 'weapon' ? '武卷' : '防卷'} 價格 (萬天幣)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="0.1"
+                                            value={scrollPrice}
+                                            onChange={(e) => setScrollPrice(parseFloat(e.target.value) || 0)}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-300 mb-1">
+                                            安定值設定
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="10"
+                                            step="1"
+                                            value={safeLevel}
+                                            onChange={(e) => setSafeLevel(parseInt(e.target.value) || 0)}
+                                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
+                                        />
+                                    </div>
+
+                                    {/* 防具專屬：機率公式選擇器 */}
+                                    {itemType === 'armor' && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-slate-300 mb-1">
+                                                防具機率公式 <span className="text-xs text-slate-500">(不同伺服器設定)</span>
+                                            </label>
+                                            <select
+                                                value={armorFormula}
+                                                onChange={(e) => setArmorFormula(e.target.value)}
+                                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors text-sm"
+                                            >
+                                                <option value="current">1 / 強化前數值 (例：+4衝+5 為 1/4)</option>
+                                                <option value="target">1 / 強化後數值 (例：+6衝+7 為 1/7)</option>
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* 提示說明 */}
+                                <div className="mt-4 p-4 bg-slate-900/50 rounded-lg text-xs text-slate-400 border border-slate-700/50">
+                                    <p className="font-semibold text-slate-300 mb-1">💡 計算邏輯說明：</p>
+                                    <ul className="list-disc pl-4 space-y-1">
+                                        <li>單次成功期望成本 = (前一階成本 + 卷軸) × (1 / 成功率)</li>
+                                        <li>武器過安定機率固定為 33.3%</li>
+                                        <li>防具過安定機率請由上方下拉選單切換符合您伺服器的設定。</li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            {}
+                            {/* 右側：計算結果顯示區 */}
+                            <div className="lg:col-span-8 space-y-4">
+                                <h2 className="text-xl font-semibold text-white mb-4 px-2">期望成本分析 (單位：萬天幣)</h2>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {results.map((res, index) => {
+                                        // 判斷是否為最高階或安定值，用來套用不同樣式
+                                        const isSafe = index === 0;
+                                        const isMax = index === results.length - 1;
+                                        const borderColor = itemType === 'weapon' ? 'amber' : 'blue';
+                                        
+                                        return (
+                                            <div 
+                                                key={index}
+                                                className={`relative overflow-hidden rounded-2xl p-6 border ${
+                                                    isSafe ? 'bg-slate-800 border-slate-700' :
+                                                    isMax ? `bg-gradient-to-br from-${borderColor}-900/30 to-slate-800 border-${borderColor}-500/50 shadow-[0_0_15px_rgba(var(--tw-colors-${borderColor}-500),0.1)]` :
+                                                    'bg-slate-800 border-slate-700'
+                                                }`}
+                                            >
+                                                {isMax && (
+                                                    <div className={`absolute top-0 right-0 bg-${borderColor}-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg`}>
+                                                        終極目標
+                                                    </div>
+                                                )}
+                                                
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <h3 className={`text-xl font-bold ${isMax ? `text-${borderColor}-400` : 'text-white'}`}>
+                                                        {res.level}
+                                                    </h3>
+                                                    <span className="text-sm px-2 py-1 bg-slate-900 rounded-md text-slate-400 font-medium">
+                                                        {res.desc}
+                                                    </span>
+                                                </div>
+                                                
+                                                <div className="mt-4">
+                                                    <div className="flex items-end gap-1 mb-1">
+                                                        <span className={`text-4xl font-extrabold ${isMax ? `text-${borderColor}-400` : 'text-slate-200'}`}>
+                                                            {formatNumber(res.cost)}
+                                                        </span>
+                                                        <span className="text-slate-400 pb-1 font-medium">萬</span>
+                                                    </div>
+                                                    
+                                                    <div className="mt-3 pt-3 border-t border-slate-700/60">
+                                                        <p className="text-xs text-slate-500 font-mono tracking-tight leading-relaxed">
+                                                            <span className="text-slate-400">算式：</span><br/> {res.formula}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                
+                                {/* 警語聲明 */}
+                                <div className="text-center mt-6 text-sm text-slate-500">
+                                    ⚠️ 期望值為大樣本數據下的平均成本。實際衝裝為獨立機率事件，請衡量自身財力（歐洲人與非洲人差距甚大）。
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
         }
 
-        const costForOneAttempt = prevCost + scrollPrice;
-        const totalExpectedCost = costForOneAttempt * attemptsNeeded;
-
-        currentResults.push({
-          level: `+${targetLevel} (過${over})`,
-          cost: totalExpectedCost,
-          formula: `(${formatNumber(prevCost)} + ${scrollPrice}卷軸) × ${attemptsNeeded}次期望值`,
-          desc: `成功率: ${successRate}`
-        });
-
-        prevCost = totalExpectedCost; // Set as base for next level
-      }
-
-      setResults(currentResults);
-    };
-
-    calculateCosts();
-  }, [itemType, basePrice, scrollPrice, safeLevel, armorFormula]);
-
-  // Format numbers to a readable string with '萬' (Ten thousand)
-  const formatNumber = (num) => {
-    if (isNaN(num)) return '0';
-    return Number(num.toFixed(1)).toLocaleString('en-US');
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-900 text-slate-200 p-4 md:p-8 font-sans">
-      <div className="max-w-5xl mx-auto">
-        
-        <header className="mb-8 text-center md:text-left">
-          <h1 className="text-3xl md:text-4xl font-bold text-amber-400 drop-shadow-md">
-            ⚔️ 天堂經典版 衝裝成本計算機
-          </h1>
-          <p className="text-slate-400 mt-2">
-            根據期望值數學模型，即時計算武器與防具的衝裝成本。
-          </p>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {}
-          <div className="lg:col-span-4 space-y-6 bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700">
-            <h2 className="text-xl font-semibold text-white border-b border-slate-700 pb-2">參數設定</h2>
-            
-            {/* Item Type Selector */}
-            <div className="space-y-3">
-              <label className="block text-sm font-medium text-slate-300">裝備類型</label>
-              <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
-                <button
-                  onClick={() => handleTypeChange('weapon')}
-                  className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
-                    itemType === 'weapon' 
-                      ? 'bg-amber-500 text-slate-900 shadow-md' 
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  🗡️ 武器
-                </button>
-                <button
-                  onClick={() => handleTypeChange('armor')}
-                  className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
-                    itemType === 'armor' 
-                      ? 'bg-blue-500 text-slate-900 shadow-md' 
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  🛡️ 防具
-                </button>
-              </div>
-            </div>
-
-            {/* Price Inputs */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  +0 白裝成本 (萬天幣)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={basePrice}
-                  onChange={(e) => setBasePrice(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  {itemType === 'weapon' ? '武卷' : '防卷'} 價格 (萬天幣)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.1"
-                  value={scrollPrice}
-                  onChange={(e) => setScrollPrice(parseFloat(e.target.value) || 0)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  安定值設定
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="10"
-                  step="1"
-                  value={safeLevel}
-                  onChange={(e) => setSafeLevel(parseInt(e.target.value) || 0)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
-                />
-              </div>
-
-              {}
-              {itemType === 'armor' && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    防具機率公式 <span className="text-xs text-slate-500">(依伺服器設定)</span>
-                  </label>
-                  <select
-                    value={armorFormula}
-                    onChange={(e) => setArmorFormula(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors text-sm"
-                  >
-                    <option value="current">1 / 強化前數值 (例：+4衝+5 為 1/4)</option>
-                    <option value="target">1 / 強化後數值 (例：+6衝+7 為 1/7)</option>
-                    <option value="safe">固定 1 / 安定值 (過三前機率不變)</option>
-                  </select>
-                </div>
-              )}
-            </div>
-            
-            <div className="mt-4 p-4 bg-slate-900/50 rounded-lg text-xs text-slate-400 border border-slate-700/50">
-              <p className="font-semibold text-slate-300 mb-1">💡 計算邏輯說明：</p>
-              <ul className="list-disc pl-4 space-y-1">
-                <li>單次成功期望成本 = (前一階成本 + 卷軸) × (1 / 成功率)</li>
-                <li>武器過安定機率固定為 33%</li>
-                <li>防具機率可由上方選單自訂（不同私服/經典版設定可能有異）。</li>
-              </ul>
-            </div>
-          </div>
-
-          {}
-          <div className="lg:col-span-8 space-y-4">
-            <h2 className="text-xl font-semibold text-white mb-4 px-2">期望成本分析 (單位：萬天幣)</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {results.map((res, index) => {
-                // Highlight styles for different levels
-                const isSafe = index === 0;
-                const isMax = index === results.length - 1;
-                
-                return (
-                  <div 
-                    key={index}
-                    className={`relative overflow-hidden rounded-2xl p-6 border ${
-                      isSafe ? 'bg-slate-800 border-slate-700' :
-                      isMax ? 'bg-gradient-to-br from-amber-900/40 to-slate-800 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]' :
-                      'bg-slate-800 border-slate-700'
-                    }`}
-                  >
-                    {isMax && (
-                      <div className="absolute top-0 right-0 bg-amber-500 text-slate-900 text-xs font-bold px-3 py-1 rounded-bl-lg">
-                        終極目標
-                      </div>
-                    )}
-                    
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className={`text-xl font-bold ${isMax ? 'text-amber-400' : 'text-white'}`}>
-                        {res.level}
-                      </h3>
-                      <span className="text-sm px-2 py-1 bg-slate-900 rounded-md text-slate-400 font-medium">
-                        {res.desc}
-                      </span>
-                    </div>
-                    
-                    <div className="mt-4">
-                      <div className="flex items-end gap-1 mb-1">
-                        <span className={`text-4xl font-extrabold ${isMax ? 'text-amber-500' : 'text-slate-200'}`}>
-                          {formatNumber(res.cost)}
-                        </span>
-                        <span className="text-slate-400 pb-1 font-medium">萬</span>
-                      </div>
-                      
-                      <div className="mt-3 pt-3 border-t border-slate-700/60">
-                        <p className="text-xs text-slate-500 font-mono tracking-tight">
-                          <span className="text-slate-400">算式：</span> {res.formula}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            
-            {/* Disclaimer */}
-            <div className="text-center mt-6 text-sm text-slate-500">
-              ⚠️ 期望值為大樣本數據下的平均成本。實際衝裝為獨立機率事件，請衡量自身財力（歐洲人與非洲人差距甚大）。
-            </div>
-            
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+        // 將 React 元件渲染到畫面上
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<LineageCostCalculator />);
+    </script>
+</body>
+</html>
