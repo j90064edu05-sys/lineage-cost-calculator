@@ -1,269 +1,273 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天堂經典版衝裝計算機</title>
-    <!-- 引入 Tailwind CSS 用於美化介面 -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        /* 隱藏數字輸入框的上下箭頭 */
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-        input[type="number"] {
-            -moz-appearance: textfield;
-        }
-    </style>
-</head>
-<body class="bg-slate-900 text-slate-200 font-sans min-h-screen p-4 md:p-8">
+import React, { useState, useEffect } from 'react';
 
-    <div class="max-w-5xl mx-auto">
-        <header class="mb-8 text-center md:text-left">
-            <h1 class="text-3xl md:text-4xl font-bold text-amber-400 drop-shadow-md">
-                ⚔️ 天堂經典版 衝裝成本計算機
-            </h1>
-            <p class="text-slate-400 mt-2">
-                根據期望值數學模型，即時計算武器與防具的衝裝成本。完全靜態網頁，支援 GitHub Pages。
-            </p>
+export default function LineageCostCalculator() {
+  const [itemType, setItemType] = useState('weapon'); // 'weapon' or 'armor'
+  const [basePrice, setBasePrice] = useState(6); // in 萬 (Ten thousands)
+  const [scrollPrice, setScrollPrice] = useState(7.4); // in 萬
+  const [safeLevel, setSafeLevel] = useState(6);
+  const [armorFormula, setArmorFormula] = useState('current');
+
+  const [results, setResults] = useState([]);
+
+  // Auto-switch default safety level when type changes to make it user-friendly
+  const handleTypeChange = (type) => {
+    setItemType(type);
+    if (type === 'weapon') {
+      setScrollPrice(7.4);
+      setSafeLevel(6);
+    } else {
+      setScrollPrice(3.6);
+      setSafeLevel(4);
+    }
+  };
+
+  // Core calculation logic triggered whenever inputs change
+  useEffect(() => {
+    const calculateCosts = () => {
+      let currentResults = [];
+      
+      // Calculate Safety Level Cost
+      const safeCost = basePrice + (scrollPrice * safeLevel);
+      currentResults.push({
+        level: `+${safeLevel} (安定值)`,
+        cost: safeCost,
+        formula: `${basePrice} + (${scrollPrice} × ${safeLevel}張卷軸)`,
+        desc: '100% 成功'
+      });
+
+      let prevCost = safeCost;
+
+      // Calculate Over 1 to Over 3 Costs
+      for (let over = 1; over <= 3; over++) {
+        const targetLevel = safeLevel + over;
+        let attemptsNeeded;
+        let successRate;
+
+        if (itemType === 'weapon') {
+          attemptsNeeded = 3; // 33% success rate = 1/3
+          successRate = '33.3%';
+        } else {
+          const currentLevel = targetLevel - 1;
+          let denominator = 1;
+          
+          if (armorFormula === 'current') {
+            denominator = Math.max(1, currentLevel);
+          } else if (armorFormula === 'target') {
+            denominator = Math.max(1, targetLevel);
+          } else if (armorFormula === 'safe') {
+            denominator = Math.max(1, safeLevel);
+          }
+          
+          attemptsNeeded = denominator; 
+          successRate = `${((1 / attemptsNeeded) * 100).toFixed(1)}%`;
+        }
+
+        const costForOneAttempt = prevCost + scrollPrice;
+        const totalExpectedCost = costForOneAttempt * attemptsNeeded;
+
+        currentResults.push({
+          level: `+${targetLevel} (過${over})`,
+          cost: totalExpectedCost,
+          formula: `(${formatNumber(prevCost)} + ${scrollPrice}卷軸) × ${attemptsNeeded}次期望值`,
+          desc: `成功率: ${successRate}`
+        });
+
+        prevCost = totalExpectedCost; // Set as base for next level
+      }
+
+      setResults(currentResults);
+    };
+
+    calculateCosts();
+  }, [itemType, basePrice, scrollPrice, safeLevel, armorFormula]);
+
+  // Format numbers to a readable string with '萬' (Ten thousand)
+  const formatNumber = (num) => {
+    if (isNaN(num)) return '0';
+    return Number(num.toFixed(1)).toLocaleString('en-US');
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-slate-200 p-4 md:p-8 font-sans">
+      <div className="max-w-5xl mx-auto">
+        
+        <header className="mb-8 text-center md:text-left">
+          <h1 className="text-3xl md:text-4xl font-bold text-amber-400 drop-shadow-md">
+            ⚔️ 天堂經典版 衝裝成本計算機
+          </h1>
+          <p className="text-slate-400 mt-2">
+            根據期望值數學模型，即時計算武器與防具的衝裝成本。
+          </p>
         </header>
 
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {}
+          <div className="lg:col-span-4 space-y-6 bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700">
+            <h2 className="text-xl font-semibold text-white border-b border-slate-700 pb-2">參數設定</h2>
             
-            <!-- 左側：參數設定區塊 -->
-            <div class="lg:col-span-4 space-y-6 bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700 h-fit">
-                <h2 class="text-xl font-semibold text-white border-b border-slate-700 pb-2">參數設定</h2>
-                
-                <!-- 裝備類型選擇 -->
-                <div class="space-y-3">
-                    <label class="block text-sm font-medium text-slate-300">裝備類型</label>
-                    <div class="flex bg-slate-900 rounded-lg p-1 border border-slate-700 gap-1" id="type-selector">
-                        <button data-type="weapon" class="type-btn active flex-1 py-2 text-xs md:text-sm font-bold rounded-md transition-all bg-amber-500 text-slate-900 shadow-md">
-                            🗡️ 武器
-                        </button>
-                        <button data-type="armor" class="type-btn flex-1 py-2 text-xs md:text-sm font-bold rounded-md transition-all text-slate-400 hover:text-white">
-                            🛡️ 防具
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 數值輸入區 -->
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1">
-                            +0 白裝成本 (萬天幣)
-                        </label>
-                        <input type="number" id="basePrice" value="6" min="0" step="0.1"
-                            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors" />
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1" id="scroll-label">
-                            武卷 價格 (萬天幣)
-                        </label>
-                        <input type="number" id="scrollPrice" value="7.4" min="0" step="0.1"
-                            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors" />
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1">
-                            安定值設定
-                        </label>
-                        <input type="number" id="safeLevel" value="6" min="0" max="10" step="1"
-                            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors" />
-                    </div>
-                </div>
-                
-                <!-- 說明文字 -->
-                <div class="mt-4 p-4 bg-slate-900/50 rounded-lg text-xs text-slate-400 border border-slate-700/50">
-                    <p class="font-semibold text-slate-300 mb-1">💡 計算邏輯說明：</p>
-                    <ul class="list-disc pl-4 space-y-1">
-                        <li>單次成功期望成本 = (前一階成本 + 卷軸) × (1 / 成功率)</li>
-                        <li>武器過安定機率固定為 33%</li>
-                        <li>防具過安定機率為 (1 / 目標強化數)</li>
-                    </ul>
-                </div>
+            {/* Item Type Selector */}
+            <div className="space-y-3">
+              <label className="block text-sm font-medium text-slate-300">裝備類型</label>
+              <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-700">
+                <button
+                  onClick={() => handleTypeChange('weapon')}
+                  className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
+                    itemType === 'weapon' 
+                      ? 'bg-amber-500 text-slate-900 shadow-md' 
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  🗡️ 武器
+                </button>
+                <button
+                  onClick={() => handleTypeChange('armor')}
+                  className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
+                    itemType === 'armor' 
+                      ? 'bg-blue-500 text-slate-900 shadow-md' 
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  🛡️ 防具
+                </button>
+              </div>
             </div>
 
-            <!-- 右側：結果顯示區塊 -->
-            <div class="lg:col-span-8 space-y-4">
-                <h2 class="text-xl font-semibold text-white mb-4 px-2">期望成本分析 (單位：萬天幣)</h2>
-                
-                <div id="results-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Javascript 將會在這裡動態插入結果卡片 -->
+            {/* Price Inputs */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  +0 白裝成本 (萬天幣)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={basePrice}
+                  onChange={(e) => setBasePrice(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  {itemType === 'weapon' ? '武卷' : '防卷'} 價格 (萬天幣)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={scrollPrice}
+                  onChange={(e) => setScrollPrice(parseFloat(e.target.value) || 0)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  安定值設定
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="1"
+                  value={safeLevel}
+                  onChange={(e) => setSafeLevel(parseInt(e.target.value) || 0)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-colors"
+                />
+              </div>
+
+              {}
+              {itemType === 'armor' && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    防具機率公式 <span className="text-xs text-slate-500">(依伺服器設定)</span>
+                  </label>
+                  <select
+                    value={armorFormula}
+                    onChange={(e) => setArmorFormula(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors text-sm"
+                  >
+                    <option value="current">1 / 強化前數值 (例：+4衝+5 為 1/4)</option>
+                    <option value="target">1 / 強化後數值 (例：+6衝+7 為 1/7)</option>
+                    <option value="safe">固定 1 / 安定值 (過三前機率不變)</option>
+                  </select>
                 </div>
-                
-                <div class="text-center mt-6 text-sm text-slate-500">
-                    ⚠️ 期望值為大樣本數據下的平均成本。實際衝裝為獨立機率事件，請衡量自身財力（歐洲人與非洲人差距甚大）。
-                </div>
+              )}
             </div>
-        </div>
-    </div>
+            
+            <div className="mt-4 p-4 bg-slate-900/50 rounded-lg text-xs text-slate-400 border border-slate-700/50">
+              <p className="font-semibold text-slate-300 mb-1">💡 計算邏輯說明：</p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>單次成功期望成本 = (前一階成本 + 卷軸) × (1 / 成功率)</li>
+                <li>武器過安定機率固定為 33%</li>
+                <li>防具機率可由上方選單自訂（不同私服/經典版設定可能有異）。</li>
+              </ul>
+            </div>
+          </div>
 
-    <script>
-        // 取得 DOM 元素
-        const typeBtns = document.querySelectorAll('.type-btn');
-        const scrollLabel = document.getElementById('scroll-label');
-        const basePriceInput = document.getElementById('basePrice');
-        const scrollPriceInput = document.getElementById('scrollPrice');
-        const safeLevelInput = document.getElementById('safeLevel');
-        const resultsContainer = document.getElementById('results-container');
-
-        // 目前選擇的裝備類型 (預設武器)
-        let currentItemType = 'weapon'; 
-
-        // 格式化數字 (顯示到小數第一位，並加上千分位逗號)
-        function formatNumber(num) {
-            if (isNaN(num)) return '0';
-            return Number(num.toFixed(1)).toLocaleString('en-US');
-        }
-
-        // 綁定類型切換按鈕事件
-        typeBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                // 移除所有按鈕的 active 狀態
-                typeBtns.forEach(b => {
-                    b.classList.remove('active', 'bg-amber-500', 'bg-blue-500', 'bg-emerald-500', 'text-slate-900', 'shadow-md');
-                    b.classList.add('text-slate-400');
-                });
-
-                // 設定當前點擊的按鈕狀態
-                const clickedBtn = e.target;
-                currentItemType = clickedBtn.dataset.type;
-                clickedBtn.classList.add('active', 'text-slate-900', 'shadow-md');
-                clickedBtn.classList.remove('text-slate-400');
-
-                // 根據類型切換樣式與預設值
-                if (currentItemType === 'weapon') {
-                    clickedBtn.classList.add('bg-amber-500');
-                    scrollLabel.textContent = '武卷 價格 (萬天幣)';
-                    scrollPriceInput.value = '7.4';
-                    safeLevelInput.value = '6';
-                } else if (currentItemType === 'armor') {
-                    clickedBtn.classList.add('bg-blue-500');
-                    scrollLabel.textContent = '防卷 價格 (萬天幣)';
-                    scrollPriceInput.value = '3.6';
-                    safeLevelInput.value = '4'; // 切換時預設為4，使用者可自行在下方輸入框修改
-                }
-
-                calculateCosts();
-            });
-        });
-
-        // 綁定輸入框變更事件 (只要有輸入就即時重新計算)
-        [basePriceInput, scrollPriceInput, safeLevelInput].forEach(input => {
-            input.addEventListener('input', calculateCosts);
-        });
-
-        // 核心計算邏輯
-        function calculateCosts() {
-            const basePrice = parseFloat(basePriceInput.value) || 0;
-            const scrollPrice = parseFloat(scrollPriceInput.value) || 0;
-            const safeLevel = parseInt(safeLevelInput.value) || 0;
-
-            resultsContainer.innerHTML = ''; // 清空結果
-
-            // 1. 計算安定值成本
-            const safeCost = basePrice + (scrollPrice * safeLevel);
-            renderCard({
-                level: `+${safeLevel} (安定值)`,
-                cost: safeCost,
-                formula: `${basePrice} + (${scrollPrice} × ${safeLevel}張卷軸)`,
-                desc: '100% 成功',
-                isSafe: true,
-                isMax: false
-            });
-
-            let prevCost = safeCost;
-
-            // 2. 計算過1到過3成本
-            for (let over = 1; over <= 3; over++) {
-                const targetLevel = safeLevel + over;
-                let attemptsNeeded;
-                let successRate;
-
-                if (currentItemType === 'weapon') {
-                    attemptsNeeded = 3; // 33% = 1/3，需要3次
-                    successRate = '33.3%';
-                } else {
-                    attemptsNeeded = targetLevel; // 機率為 1/目標等級
-                    successRate = ((1 / targetLevel) * 100).toFixed(1) + '%';
-                }
-
-                const costForOneAttempt = prevCost + scrollPrice;
-                const totalExpectedCost = costForOneAttempt * attemptsNeeded;
-
-                renderCard({
-                    level: `+${targetLevel} (過${over})`,
-                    cost: totalExpectedCost,
-                    formula: `(${formatNumber(prevCost)} + ${scrollPrice}卷軸) × ${attemptsNeeded}次期望值`,
-                    desc: `成功率: ${successRate}`,
-                    isSafe: false,
-                    isMax: over === 3
-                });
-
-                prevCost = totalExpectedCost; // 將本次期望成本設為下一階的基礎成本
-            }
-        }
-
-        // 繪製結果卡片的 HTML
-        function renderCard(data) {
-            // 設定不同卡片的樣式
-            let cardClasses = 'relative overflow-hidden rounded-2xl p-6 border ';
-            let titleClasses = 'text-xl font-bold ';
-            let costClasses = 'text-4xl font-extrabold ';
-
-            if (data.isSafe) {
-                cardClasses += 'bg-slate-800 border-slate-700';
-                titleClasses += 'text-white';
-                costClasses += 'text-slate-200';
-            } else if (data.isMax) {
-                cardClasses += 'bg-gradient-to-br from-amber-900/40 to-slate-800 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]';
-                titleClasses += 'text-amber-400';
-                costClasses += 'text-amber-500';
-            } else {
-                cardClasses += 'bg-slate-800 border-slate-700';
-                titleClasses += 'text-white';
-                costClasses += 'text-slate-200';
-            }
-
-            const maxBadge = data.isMax 
-                ? `<div class="absolute top-0 right-0 bg-amber-500 text-slate-900 text-xs font-bold px-3 py-1 rounded-bl-lg">終極目標</div>` 
-                : '';
-
-            const cardHTML = `
-                <div class="${cardClasses}">
-                    ${maxBadge}
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="${titleClasses}">${data.level}</h3>
-                        <span class="text-sm px-2 py-1 bg-slate-900 rounded-md text-slate-400 font-medium">
-                            ${data.desc}
-                        </span>
+          {}
+          <div className="lg:col-span-8 space-y-4">
+            <h2 className="text-xl font-semibold text-white mb-4 px-2">期望成本分析 (單位：萬天幣)</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {results.map((res, index) => {
+                // Highlight styles for different levels
+                const isSafe = index === 0;
+                const isMax = index === results.length - 1;
+                
+                return (
+                  <div 
+                    key={index}
+                    className={`relative overflow-hidden rounded-2xl p-6 border ${
+                      isSafe ? 'bg-slate-800 border-slate-700' :
+                      isMax ? 'bg-gradient-to-br from-amber-900/40 to-slate-800 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]' :
+                      'bg-slate-800 border-slate-700'
+                    }`}
+                  >
+                    {isMax && (
+                      <div className="absolute top-0 right-0 bg-amber-500 text-slate-900 text-xs font-bold px-3 py-1 rounded-bl-lg">
+                        終極目標
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className={`text-xl font-bold ${isMax ? 'text-amber-400' : 'text-white'}`}>
+                        {res.level}
+                      </h3>
+                      <span className="text-sm px-2 py-1 bg-slate-900 rounded-md text-slate-400 font-medium">
+                        {res.desc}
+                      </span>
                     </div>
                     
-                    <div class="mt-4">
-                        <div class="flex items-end gap-1 mb-1">
-                            <span class="${costClasses}">${formatNumber(data.cost)}</span>
-                            <span class="text-slate-400 pb-1 font-medium">萬</span>
-                        </div>
-                        
-                        <div class="mt-3 pt-3 border-t border-slate-700/60">
-                            <p class="text-xs text-slate-500 font-mono tracking-tight">
-                                <span class="text-slate-400">算式：</span> ${data.formula}
-                            </p>
-                        </div>
+                    <div className="mt-4">
+                      <div className="flex items-end gap-1 mb-1">
+                        <span className={`text-4xl font-extrabold ${isMax ? 'text-amber-500' : 'text-slate-200'}`}>
+                          {formatNumber(res.cost)}
+                        </span>
+                        <span className="text-slate-400 pb-1 font-medium">萬</span>
+                      </div>
+                      
+                      <div className="mt-3 pt-3 border-t border-slate-700/60">
+                        <p className="text-xs text-slate-500 font-mono tracking-tight">
+                          <span className="text-slate-400">算式：</span> {res.formula}
+                        </p>
+                      </div>
                     </div>
-                </div>
-            `;
+                  </div>
+                );
+              })}
+            </div>
             
-            // 將卡片加入到容器中
-            resultsContainer.insertAdjacentHTML('beforeend', cardHTML);
-        }
-
-        // 初始化第一次計算
-        calculateCosts();
-    </script>
-</body>
-</html>
+            {/* Disclaimer */}
+            <div className="text-center mt-6 text-sm text-slate-500">
+              ⚠️ 期望值為大樣本數據下的平均成本。實際衝裝為獨立機率事件，請衡量自身財力（歐洲人與非洲人差距甚大）。
+            </div>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
